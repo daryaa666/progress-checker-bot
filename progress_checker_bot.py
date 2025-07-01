@@ -6,7 +6,14 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # 🔐 Настройки Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("telegram-checker-456310-8f0083357ddb.json", scope)
+import json
+import os
+from io import StringIO
+
+json_creds = os.getenv("GOOGLE_CREDS_JSON")
+creds_dict = json.loads(json_creds)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+
 gclient = gspread.authorize(creds)
 
 # 📗 Открываем нужный лист
