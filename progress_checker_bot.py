@@ -1,3 +1,5 @@
+import telegram
+print("📦 Используемая версия python-telegram-bot:", telegram.__version__)
 import logging
 import csv
 from telegram import Update
