@@ -1,46 +1,39 @@
-import telegram
-print("📦 Используемая версия python-telegram-bot:", telegram.__version__)
-import logging
 import csv
+import os
+import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-# 🛠 Логирование
-logging.basicConfig(level=logging.INFO)
-
-# 📦 Состояние
+# 🧠 Состояние
 user_states = {}
 
-# 📊 Загрузка данных из CSV
-def load_student_data():
+# 🗂 Чтение CSV
+def read_progress_data():
     students = []
-    with open("students.csv", newline="", encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
+    with open("students.csv", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
         for row in reader:
             students.append(row)
     return students
 
 # ▶️ /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("▶️ Получена команда /start")
     await update.message.reply_text("Привет! Введи, пожалуйста, свою почту, чтобы мы проверили твой прогресс.")
     user_states[update.effective_chat.id] = "waiting_for_email"
 
-# 📨 Сообщения
+# 💬 Сообщения
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("📨 Получено сообщение:", update.message.text)
     chat_id = update.effective_chat.id
     state = user_states.get(chat_id)
 
     if state == "waiting_for_email":
         email = update.message.text.strip().lower()
-        data = load_student_data()
-
+        data = read_progress_data()
         student = next((row for row in data if row.get('Email', '').strip().lower() == email), None)
 
         if student:
             try:
-                progress = float(student.get('Progress', 0))
+                progress = float(student.get('Progress', '0').replace('%', '').strip())
                 if progress >= 70:
                     await update.message.reply_text("🎉 У тебя отличный прогресс! Ты можешь участвовать в конкурсе!")
                 else:
@@ -52,9 +45,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Напиши /start, чтобы начать проверку.")
 
+# 🛠 Логирование
+logging.basicConfig(level=logging.INFO)
+
 # 🚀 Запуск
 if __name__ == "__main__":
-    TOKEN = "вставь_сюда_токен_бота"
+    TOKEN = os.getenv("BOT_TOKEN")  # ☝️ Настроить в Render → Environment
 
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
