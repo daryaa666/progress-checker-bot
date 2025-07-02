@@ -6,7 +6,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
 
 # 🔐 Настройки Google Sheets через файл
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("google-credentials.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name("telegram-checker-456310-8f0083357ddb.json", scope)
 gclient = gspread.authorize(creds)
 
 # 📗 Открываем нужный лист
