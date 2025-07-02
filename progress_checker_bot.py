@@ -1,22 +1,22 @@
 import logging
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+import csv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-
-# 🔐 Настройки Google Sheets через файл
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("telegram-checker-456310-8f0083357ddb.json", scope)
-gclient = gspread.authorize(creds)
-
-# 📗 Открываем нужный лист
-sheet = gclient.open_by_key("1swCHEEm5u38bJZJMQQj0b6kxWSrjIta_r2nlsEoGibM").sheet1
 
 # 🛠 Логирование
 logging.basicConfig(level=logging.INFO)
 
 # 📦 Состояние
 user_states = {}
+
+# 📊 Загрузка данных из CSV
+def load_student_data():
+    students = []
+    with open("students.csv", newline="", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            students.append(row)
+    return students
 
 # ▶️ /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -32,7 +32,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if state == "waiting_for_email":
         email = update.message.text.strip().lower()
-        data = sheet.get_all_records()
+        data = load_student_data()
 
         student = next((row for row in data if row.get('Email', '').strip().lower() == email), None)
 
