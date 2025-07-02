@@ -1,19 +1,28 @@
 import logging
+import os
+import json
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+# 🛠 Логирование (для отладки)
+logging.basicConfig(level=logging.INFO)
+
 # 🔐 Настройки Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-import json
-import os
-from io import StringIO
 
+# Чтение JSON из переменной окружения с проверкой
 json_creds = os.getenv("GOOGLE_CREDS_JSON")
-creds_dict = json.loads(json_creds)
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+if not json_creds:
+    raise ValueError("❌ Переменная окружения GOOGLE_CREDS_JSON не найдена!")
 
+try:
+    creds_dict = json.loads(json_creds)
+except json.JSONDecodeError as e:
+    raise ValueError(f"❌ Ошибка при разборе JSON из GOOGLE_CREDS_JSON: {e}")
+
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 gclient = gspread.authorize(creds)
 
 # 📗 Открываем нужный лист
@@ -22,16 +31,13 @@ sheet = gclient.open_by_key("1swCHEEm5u38bJZJMQQj0b6kxWSrjIta_r2nlsEoGibM").shee
 # 🔄 Храним состояние пользователя
 user_states = {}
 
-# 🛠 Логирование (для отладки)
-logging.basicConfig(level=logging.INFO)
-
-# Функция старта
+# 📍 Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("▶️ Получена команда /start")
     await update.message.reply_text("Привет! Введи, пожалуйста, свою почту, чтобы мы проверили твой прогресс.")
     user_states[update.effective_chat.id] = "waiting_for_email"
 
-# Функция обработки текстов
+# 💌 Обработка текстов
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("📨 Получено сообщение:", update.message.text)
     chat_id = update.effective_chat.id
@@ -59,7 +65,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # 🚀 Запуск бота
 if __name__ == "__main__":
-    # Вставь сюда свой токен от BotFather
     TOKEN = "7502544999:AAE0upW1g8sQX6xstmMjpOgPgzz3q3-FY5I"
 
     app = ApplicationBuilder().token(TOKEN).build()
@@ -69,5 +74,4 @@ if __name__ == "__main__":
 
     print("🤖 Бот запущен и ждёт сообщений...")
     print("✅ Попытка запуска polling...")
-app.run_polling(close_loop=False)
-
+    app.run_polling(close_loop=False)
