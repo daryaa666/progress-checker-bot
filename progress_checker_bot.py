@@ -1,43 +1,30 @@
 import logging
-import os
-import json
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-# 🛠 Логирование (для отладки)
-logging.basicConfig(level=logging.INFO)
-
-# 🔐 Настройки Google Sheets
+# 🔐 Настройки Google Sheets через файл
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
-# Чтение JSON из переменной окружения с проверкой
-json_creds = os.getenv("GOOGLE_CREDS_JSON")
-if not json_creds:
-    raise ValueError("❌ Переменная окружения GOOGLE_CREDS_JSON не найдена!")
-
-try:
-    creds_dict = json.loads(json_creds)
-except json.JSONDecodeError as e:
-    raise ValueError(f"❌ Ошибка при разборе JSON из GOOGLE_CREDS_JSON: {e}")
-
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name("google-credentials.json", scope)
 gclient = gspread.authorize(creds)
 
 # 📗 Открываем нужный лист
 sheet = gclient.open_by_key("1swCHEEm5u38bJZJMQQj0b6kxWSrjIta_r2nlsEoGibM").sheet1
 
-# 🔄 Храним состояние пользователя
+# 🛠 Логирование
+logging.basicConfig(level=logging.INFO)
+
+# 📦 Состояние
 user_states = {}
 
-# 📍 Команда /start
+# ▶️ /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("▶️ Получена команда /start")
     await update.message.reply_text("Привет! Введи, пожалуйста, свою почту, чтобы мы проверили твой прогресс.")
     user_states[update.effective_chat.id] = "waiting_for_email"
 
-# 💌 Обработка текстов
+# 📨 Сообщения
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("📨 Получено сообщение:", update.message.text)
     chat_id = update.effective_chat.id
@@ -63,15 +50,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Напиши /start, чтобы начать проверку.")
 
-# 🚀 Запуск бота
+# 🚀 Запуск
 if __name__ == "__main__":
-    TOKEN = "7502544999:AAE0upW1g8sQX6xstmMjpOgPgzz3q3-FY5I"
+    TOKEN = "вставь_сюда_токен_бота"
 
     app = ApplicationBuilder().token(TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("🤖 Бот запущен и ждёт сообщений...")
-    print("✅ Попытка запуска polling...")
     app.run_polling(close_loop=False)
